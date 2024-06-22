@@ -1,0 +1,88 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the dataset
+sales_data = pd.read_excel("D:\\RAHUL PROPERTY\\ECOMM DATA.xlsx")
+
+# Inspect the columns of the DataFrame
+print(sales_data.columns)
+
+# Data cleaning and preparation
+quantity_col = 'Quantity'
+price_col = 'Sales'
+sales_date_col = 'Order Date'
+product_name_col = 'Product Name'
+order_id_col = 'Order ID'
+
+# Drop any rows with missing values
+sales_data.dropna(inplace=True)
+
+# Calculate total revenue
+sales_data['total_revenue'] = sales_data[price_col]
+
+# Total Sales Calculation
+total_sales = sales_data['total_revenue'].sum()
+print(f'Total Sales: ${total_sales:.2f} USD')
+
+# Total Quantity Sold
+total_quantity_sold = sales_data[quantity_col].sum()
+print(f'Total Quantity Sold: {total_quantity_sold} units')
+
+# Total Number of Orders
+total_orders = sales_data[order_id_col].nunique()
+print(f'Total Number of Orders: {total_orders} orders')
+
+# Average Order Value (AOV)
+average_order_value = total_sales / total_orders
+print(f'Average Order Value (AOV): ${average_order_value:.2f} USD per order')
+
+# Average Revenue per Product
+unique_products = sales_data[product_name_col].nunique()
+average_revenue_per_product = total_sales / unique_products
+print(f'Average Revenue per Product: ${average_revenue_per_product:.2f} USD per product')
+
+# Average Quantity per Order
+average_quantity_per_order = total_quantity_sold / total_orders
+print(f'Average Quantity per Order: {average_quantity_per_order:.2f} units per order')
+
+# Sales Trends Over Time
+# Convert sales date to datetime format
+sales_data[sales_date_col] = pd.to_datetime(sales_data[sales_date_col])
+# Set the sales date column as the index
+sales_data.set_index(sales_date_col, inplace=True)
+# Resample the data to monthly frequency and sum the total revenue for each month
+monthly_sales = sales_data.resample('M')['total_revenue'].sum()
+
+# Plotting Sales Trends
+plt.figure(figsize=(10, 6))
+monthly_sales.plot()
+plt.title('Monthly Sales Trends')
+plt.xlabel('Date')
+plt.ylabel('Total Revenue (USD)')
+plt.grid(True)
+plt.show()
+
+# Best-Selling Products
+# Group by product name and aggregate total revenue and quantity sold
+product_sales = sales_data.groupby(product_name_col).agg({'total_revenue': 'sum', quantity_col: 'sum'})
+# Sort the products by total revenue and quantity sold to get the top 10 best-selling products
+top_products_revenue = product_sales.sort_values(by='total_revenue', ascending=False).head(10)
+top_products_quantity = product_sales.sort_values(by=quantity_col, ascending=False).head(10)
+
+# Plotting Best-Selling Products by Revenue
+plt.figure(figsize=(15, 8))
+top_products_revenue['total_revenue'].plot(kind='bar')
+plt.title('Top 10 Best-Selling Products by Revenue')
+plt.xlabel('Product')
+plt.ylabel('Total Revenue (USD)')
+plt.xticks(rotation=90)
+plt.show()
+
+# Plotting Best-Selling Products by Quantity
+plt.figure(figsize=(12, 8))
+top_products_quantity[quantity_col].plot(kind='bar', color='orange')
+plt.title('Top 10 Best-Selling Products by Quantity')
+plt.xlabel('Product')
+plt.ylabel('Quantity Sold (units)')
+plt.xticks(rotation=90)
+plt.show()
