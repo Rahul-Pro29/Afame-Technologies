@@ -1,0 +1,150 @@
+import pandas as pd
+import re
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the dataset
+file_path = "D:\\RAHUL PROPERTY\\Titanic-Dataset.csv"
+data = pd.read_csv(file_path)
+
+# Function to extract title from the name
+def extract_title(name):
+    title_search = re.search(' ([A-Za-z]+)\.', name)
+    if title_search:
+        return title_search.group(1)
+    return ""
+
+# Function to extract ticket prefix
+def extract_ticket_prefix(ticket):
+    ticket_search = re.search('([A-Za-z\.\/]+)', ticket)
+    if ticket_search:
+        return ticket_search.group(1)
+    return "None"
+
+# Function to extract ticket number
+def extract_ticket_number(ticket):
+    ticket_number = re.sub('[^0-9]', '', ticket)
+    if ticket_number:
+        return int(ticket_number)
+    return 0
+
+# Apply the functions to extract features
+data['Title'] = data['Name'].apply(extract_title)
+data['TicketPrefix'] = data['Ticket'].apply(extract_ticket_prefix)
+data['TicketNumber'] = data['Ticket'].apply(extract_ticket_number)
+
+# Drop the original 'Name' and 'Ticket' columns
+data.drop(['Name', 'Ticket'], axis=1, inplace=True)
+
+# Encode categorical features
+label_encoders = {}
+categorical_features = ['Sex', 'Embarked', 'Title', 'TicketPrefix']
+
+for feature in categorical_features:
+    label_encoders[feature] = LabelEncoder()
+    data[feature] = label_encoders[feature].fit_transform(data[feature].astype(str))
+
+# Fill missing values for numeric columns with median
+numeric_features = data.select_dtypes(include=['float64', 'int64']).columns
+data[numeric_features] = data[numeric_features].fillna(data[numeric_features].median())
+
+# Fill missing values for categorical columns with the most frequent value
+categorical_features = data.select_dtypes(include=['object']).columns
+data[categorical_features] = data[categorical_features].apply(lambda x: x.fillna(x.value_counts().index[0]))
+
+# Split the data into features and target
+X = data.drop(['PassengerId', 'Survived', 'Cabin'], axis=1)
+y = data['Survived']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize and train a RandomForestClassifier
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+report = classification_report(y_test, y_pred)
+
+print(f"Accuracy: {accuracy}")
+print(f"Classification Report:\n{report}")
+
+# Function to preprocess input
+def preprocess_input(name, ticket):
+    title = extract_title(name)
+    ticket_prefix = extract_ticket_prefix(ticket)
+    ticket_number = extract_ticket_number(ticket)
+    
+    encoded_sex = label_encoders['Sex'].transform(['male'])[0]  # Default to 'male'
+    encoded_embarked = label_encoders['Embarked'].transform(['S'])[0]  # Default to 'S'
+    encoded_title = label_encoders['Title'].transform([title])[0] if title in label_encoders['Title'].classes_ else -1
+    encoded_ticket_prefix = label_encoders['TicketPrefix'].transform([ticket_prefix])[0] if ticket_prefix in label_encoders['TicketPrefix'].classes_ else -1
+    
+    input_data = pd.DataFrame({
+        'Pclass': [3],  # Default to 3rd class
+        'Sex': [encoded_sex],
+        'Age': [29],  # Default to 29
+        'SibSp': [0],  # Default to 0
+        'Parch': [0],  # Default to 0
+        'Fare': [30],  # Default to 30
+        'Embarked': [encoded_embarked],
+        'Title': [encoded_title],
+        'TicketPrefix': [encoded_ticket_prefix],
+        'TicketNumber': [ticket_number]
+    })
+    
+    return input_data
+
+# Function to predict survival
+def predict_survival(name, ticket):
+    # Check if the passenger is in the dataset
+    title = extract_title(name)
+    ticket_number = extract_ticket_number(ticket)
+    
+    passenger_present = (
+        (data['Title'] == title) & 
+        (data['TicketNumber'] == ticket_number)
+    ).any()
+    
+    if not passenger_present:
+        return "Please enter the correct details"
+    
+    input_data = preprocess_input(name, ticket)
+    prediction = model.predict(input_data)
+    return "Survived" if prediction[0] == 1 else "Did not survive"
+
+# Function to visualize data
+def visualize_data():
+    plt.figure(figsize=(10, 6))
+    sns.countplot(data=data, x='Survived')
+    plt.title('Survival Count')
+    plt.show()
+
+    plt.figure(figsize=(10, 6))
+    sns.countplot(data=data, x='Pclass', hue='Survived')
+    plt.title('Survival by Passenger Class')
+    plt.show()
+
+    plt.figure(figsize=(10, 6))
+    sns.countplot(data=data, x='Sex', hue='Survived')
+    plt.title('Survival by Sex')
+    plt.show()
+
+# Visualize the data
+visualize_data()
+
+# Take user input
+name_input = input("Enter passenger name: ")
+ticket_input = input("Enter ticket number: ")
+
+# Predict survival
+result = predict_survival(name_input, ticket_input)
+print(result)
