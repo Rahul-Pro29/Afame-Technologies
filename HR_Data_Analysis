@@ -1,0 +1,114 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the CSV file
+file_path = "D:\\RAHUL PROPERTY\\HR Data.csv"  # Update with the actual path to your file
+data = pd.read_csv(file_path)
+
+# Data Visualization function
+def visualize_data(data, title, column_mapping):
+    plt.figure(figsize=(15, 10))
+    plt.suptitle(title, fontsize=16)
+    
+    # Histograms for numerical columns
+    plt.subplot(2, 2, 1)
+    sns.histplot(data[column_mapping['Age']], kde=True, bins=30, color='skyblue')
+    plt.title('Age Distribution')
+    
+    plt.subplot(2, 2, 2)
+    sns.histplot(data[column_mapping['DailyRate']], kde=True, bins=30, color='olive')
+    plt.title('Daily Rate Distribution')
+    
+    plt.subplot(2, 2, 3)
+    sns.histplot(data[column_mapping['MonthlyIncome']], kde=True, bins=30, color='gold')
+    plt.title('Monthly Income Distribution')
+    
+    plt.subplot(2, 2, 4)
+    sns.countplot(x=column_mapping['Gender'], data=data, palette='viridis')
+    plt.title('Gender Distribution')
+    
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.show()
+
+# Visualize data before cleaning
+visualize_data(data, 'Data Before Cleaning', {
+    'Age': 'Age',
+    'DailyRate': 'DailyRate',
+    'MonthlyIncome': 'MonthlyIncome',
+    'Gender': 'Gender'
+})
+
+# Metrics before cleaning
+def print_metrics(data, description):
+    print(f"\033[1m{description}:\033[0m")
+    print(f"Number of Rows: {data.shape[0]}")
+    print(f"Number of Columns: {data.shape[1]}")
+    print(f"Count of NaN values:\n{data.isna().sum()}")
+    print("\n")
+
+print_metrics(data, 'Metrics Before Cleaning')
+
+# Step 1: Remove unnecessary columns
+columns_to_remove = ['EmployeeCount', 'StandardHours', 'Over18']
+data_cleaned = data.drop(columns=columns_to_remove)
+
+# Step 2: Rename columns
+columns_rename = {
+    'Age': 'Employee_Age',
+    'Attrition': 'Employee_Attrition',
+    'BusinessTravel': 'Business_Travel_Frequency',
+    'DailyRate': 'Daily_Rate',
+    'Department': 'Department_Name',
+    'DistanceFromHome': 'Distance_From_Home',
+    'Education': 'Education_Level',
+    'EducationField': 'Education_Field',
+    'EmployeeNumber': 'Employee_ID',
+    'EnvironmentSatisfaction': 'Environment_Satisfaction',
+    'Gender': 'Gender',
+    'HourlyRate': 'Hourly_Rate',
+    'JobInvolvement': 'Job_Involvement',
+    'JobLevel': 'Job_Level',
+    'JobRole': 'Job_Role',
+    'JobSatisfaction': 'Job_Satisfaction',
+    'MaritalStatus': 'Marital_Status',
+    'MonthlyIncome': 'Monthly_Income',
+    'MonthlyRate': 'Monthly_Rate',
+    'NumCompaniesWorked': 'Num_Companies_Worked',
+    'OverTime': 'Over_Time',
+    'PercentSalaryHike': 'Percent_Salary_Hike',
+    'PerformanceRating': 'Performance_Rating',
+    'RelationshipSatisfaction': 'Relationship_Satisfaction',
+    'StockOptionLevel': 'Stock_Option_Level',
+    'TotalWorkingYears': 'Total_Working_Years',
+    'TrainingTimesLastYear': 'Training_Times_Last_Year',
+    'WorkLifeBalance': 'Work_Life_Balance',
+    'YearsAtCompany': 'Years_At_Company',
+    'YearsInCurrentRole': 'Years_In_Current_Role',
+    'YearsSinceLastPromotion': 'Years_Since_Last_Promotion',
+    'YearsWithCurrManager': 'Years_With_Current_Manager'
+}
+
+data_cleaned = data_cleaned.rename(columns=columns_rename)
+
+# Step 3: Eliminate redundant entries
+data_cleaned = data_cleaned.drop_duplicates()
+
+# Step 4: Sanitize specific columns
+# Ensuring consistent formatting for 'Gender' and 'Marital_Status' columns
+data_cleaned['Gender'] = data_cleaned['Gender'].str.strip().str.title()
+data_cleaned['Marital_Status'] = data_cleaned['Marital_Status'].str.strip().str.title()
+
+# Step 5: Eliminate NaN values
+data_cleaned = data_cleaned.dropna()
+
+# Metrics after cleaning
+print_metrics(data_cleaned, 'Metrics After Cleaning')
+
+# Visualize data after cleaning
+visualize_data(data_cleaned, 'Data After Cleaning', {
+    'Age': 'Employee_Age',
+    'DailyRate': 'Daily_Rate',
+    'MonthlyIncome': 'Monthly_Income',
+    'Gender': 'Gender'
+})
